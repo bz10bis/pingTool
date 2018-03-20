@@ -1,6 +1,7 @@
 import time
 import os
 import sys
+import socket
 import subprocess
 from random import randint
 import threading
@@ -20,15 +21,18 @@ class Ping(object):
         self.canvas = Canvas(master, width=self.w_width, height=self.w_height, background="blue")
         self.canvas.pack(fill=BOTH, expand=True)
         self.canvas.create_text(10, 5, text="Min:", font="Arial 6", fill="white")
-        self.label_min_ip = self.canvas.create_text(10, 5, text="Min:", font="Arial 6", fill="white")
-        self.label_max_ip = self.canvas.create_text(10, 14, text="Max: 100", font="Arial 6", fill="white")
-        self.label_avg_ip = self.canvas.create_text(10, 23, text="Moy: 21", font="Arial 6", fill="white")
+        self.label_min_ip = self.canvas.create_text(15, 5, text="Min: 0", font="Arial 8", fill="white")
+        self.label_max_ip = self.canvas.create_text(15, 14, text="Max: 0", font="Arial 8", fill="white")
+        self.label_avg_ip = self.canvas.create_text(15, 23, text="Moy: 0", font="Arial 8", fill="white")
+        self.label_current_ip = self.canvas.create_text(10, 32, text="Curr: 0", font="Arial 6", fill="white")
+        self.offset = 0
         self.update()
 
     def update(self):
-        ping_value = randint(0, 9) * 10
-        print(ping_value)
-        if self.count < 100:
+        #ping_value = randint(0, 9) * 10
+        ping_value = self.do_a_ping("www.google.com", 80)
+        ping_value = round(ping_value * 1000)
+        if self.count < 10000:
             if ping_value < self.min_ip:
                 self.min_ip = ping_value
             elif ping_value > self.max_ip:
@@ -37,21 +41,40 @@ class Ping(object):
             self.signal_list.append(ping_value)
             if len(self.signal_list) >= self.max_size:
                 del self.signal_list[-1]
-            self.avg_ip = sum(self.signal_list) / len(self.signal_list)
+            self.avg_ip = round(sum(self.signal_list) / len(self.signal_list))
             self.canvas.itemconfigure(self.label_min_ip, text="Min: {}".format(str(self.min_ip)))
             self.canvas.itemconfigure(self.label_max_ip, text="Max: {}".format(str(self.max_ip)))
             self.canvas.itemconfigure(self.label_avg_ip, text="Avg: {}".format(str(self.avg_ip)))
-            self.canvas.after(300, self.update)
-            self.draw_lines()
+            self.canvas.itemconfigure(self.label_current_ip, text="Cur: {}".format(str(ping_value)))
+            self.canvas.after(10, self.update)
+            x0 = self.w_width - self.count
+            y0 = self.w_height - (ping_value + 30)
+            x1 = self.w_width - self.count
+            y1 = self.w_height
+            self.canvas.create_line(x0, y0, x1, y1, fill="white")
             self.count += 1
-        #print(ping_value)
-        #print(self.signal_list)
+            print(self.count)
 
-    def draw_lines(self):
-        for i,s in enumerate(reversed(self.signal_list)):
-            self.canvas.create_line(self.w_width - i, s, self.w_width - i, s, fill="white")
-            print("i : {}".format(i))
-            print("s : {}".format(s))
+
+    def do_a_ping(self, host, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        s_start = time.time()
+        success = False
+        try:
+            s.connect((host, int(port)))
+            s.shutdown(socket.SHUT_RD)
+            success = True
+        except socket.timeout:
+            print("timeout")
+        except OSError as e:
+            print("Os Error: {}".format(e))
+        s_stop = time.time()
+        if success:
+            elapse_time = s_stop - s_start
+        else:
+            elapse_time = 9999
+        return elapse_time
 
 if __name__ == '__main__':
     print("Python Ping")
