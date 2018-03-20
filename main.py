@@ -26,11 +26,12 @@ class Ping(object):
         self.label_avg_ip = self.canvas.create_text(15, 23, text="Moy: 0", font="Arial 8", fill="white")
         self.label_current_ip = self.canvas.create_text(10, 32, text="Curr: 0", font="Arial 6", fill="white")
         self.offset = 0
+        self.speed = 100
         self.update()
 
     def update(self):
-        #ping_value = randint(0, 9) * 10
-        ping_value = self.do_a_ping("www.google.com", 80)
+        # ping_value = randint(0, 9) * 10
+        ping_value = self.do_a_ping("192.168.1.82", 80)
         ping_value = round(ping_value * 1000)
         if self.count < 10000:
             if ping_value < self.min_ip:
@@ -46,15 +47,18 @@ class Ping(object):
             self.canvas.itemconfigure(self.label_max_ip, text="Max: {}".format(str(self.max_ip)))
             self.canvas.itemconfigure(self.label_avg_ip, text="Avg: {}".format(str(self.avg_ip)))
             self.canvas.itemconfigure(self.label_current_ip, text="Cur: {}".format(str(ping_value)))
-            self.canvas.after(10, self.update)
+            self.canvas.after(self.speed, self.update)
             x0 = self.w_width - self.count
             y0 = self.w_height - (ping_value + 30)
             x1 = self.w_width - self.count
             y1 = self.w_height
-            self.canvas.create_line(x0, y0, x1, y1, fill="white")
+            color = "white"
+            if ping_value > 1000:
+                ping_value = 9999
+                color = "red"
+            self.canvas.create_line(x0, y0, x1, y1, fill=color)
             self.count += 1
             print(self.count)
-
 
     def do_a_ping(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -75,6 +79,7 @@ class Ping(object):
         else:
             elapse_time = 9999
         return elapse_time
+
 
 if __name__ == '__main__':
     print("Python Ping")
